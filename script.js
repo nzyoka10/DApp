@@ -1,5 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Define DOM elements
+    // Redirect to login if not logged in
+    if (localStorage.getItem('loggedIn') !== 'true') {
+        window.location.href = 'login.html';
+        return;
+    }
+
     const connectButton = document.getElementById('connectButton');
     const walletAddress = document.getElementById('walletAddress');
     const balance = document.getElementById('balance');
@@ -12,7 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof window.ethereum !== 'undefined') {
         console.log('MetaMask is installed!');
     } else {
-        // Display error message if MetaMask is not installed
         Swal.fire({
             icon: 'error',
             title: 'Oops...',
@@ -21,22 +25,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // Event listener for the connect button
+    // Connect to MetaMask
     connectButton.addEventListener('click', async () => {
         try {
-            // Request accounts from MetaMask
             const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
             userAccount = accounts[0];
-
-            // Display the shortened Ethereum address
             walletAddress.textContent = `Connected: ${shortenAddress(userAccount)}`;
-
-            // Retrieve and display the account balance
             getBalance();
-            
         } catch (error) {
             console.error('Connection Error:', error);
-            // Display error message for connection failure
             Swal.fire({
                 icon: 'error',
                 title: 'Connection Failed',
@@ -45,16 +42,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Function to shorten Ethereum address
+    // Shorten Ethereum address
     function shortenAddress(address) {
-        // Display the first 6 and last 4 characters of the address
         return `${address.slice(0, 6)}...${address.slice(-4)}`;
     }
 
-    // Function to retrieve account balance
+    // Get account balance
     async function getBalance() {
         if (!userAccount) {
-            // Alert user to connect wallet if no account is set
             Swal.fire({
                 icon: 'error',
                 title: 'No Account',
@@ -63,61 +58,50 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         try {
-            // Request the balance in wei
             const balanceInWei = await ethereum.request({
                 method: 'eth_getBalance',
                 params: [userAccount, 'latest']
             });
-
-            // Convert wei to ether and display
             const balanceInEth = parseFloat(ethers.utils.formatEther(balanceInWei)).toFixed(4);
             balance.textContent = `${balanceInEth} ETH`;
-
         } catch (error) {
-            console.error('Balance Retrieval Error:', error);
-            // Display error message if balance retrieval fails
+            console.error('Balance Fetch Error:', error);
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: 'Failed to retrieve balance. Please check your connection.',
+                text: 'Failed to retrieve balance.',
             });
         }
     }
 
-    // Event listener for the send funds form
+    // Send funds
     sendForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const recipient = document.getElementById('recipient').value;
         const amount = document.getElementById('amount').value;
 
         try {
-            // Set up transaction parameters
             const transactionParameters = {
                 to: recipient,
                 value: ethers.utils.parseEther(amount)._hex,
             };
 
-            // Send the transaction
             const txHash = await ethereum.request({
                 method: 'eth_sendTransaction',
                 params: [transactionParameters],
             });
 
-            // Display transaction hash and update balance
             transactionStatus.textContent = `Transaction sent: ${txHash}`;
             transactionStatus.style.color = 'green';
-
-            // Update balance after sending
-            getBalance(); 
+            getBalance(); // Update balance after sending
         } catch (error) {
             console.error('Transaction Error:', error);
-            // Display error message if transaction fails
             transactionStatus.textContent = 'Transaction failed!';
             transactionStatus.style.color = 'red';
             Swal.fire({
                 icon: 'error',
                 title: 'Transaction Failed',
-                text: 'The transaction could not be completed. Please check the details and try again.',
+                text: 'Unable to send funds. Please check the recipient address and try again.',
             });
         }
     });
