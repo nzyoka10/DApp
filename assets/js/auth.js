@@ -17,8 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Mock authentication check
         if (username === 'admin' && password === 'abcd') {
             // If credentials are correct, set session and redirect
-            loginStatus.textContent = 'Login successful!';
-            loginStatus.style.color = 'green';
+            // loginStatus.textContent = 'Login successful!';
+            // loginStatus.style.color = 'green';
             
             // Store user session
             sessionStorage.setItem('user', username);
