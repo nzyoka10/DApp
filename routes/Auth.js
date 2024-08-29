@@ -68,4 +68,22 @@ router.get('/logout', (req, res) => {
     });
 });
 
+// Record transaction route (optional)
+router.post('/record-transaction', async (req, res) => {
+    const { userId, transactionHash, amount, status } = req.body;
+
+    if (!userId || !transactionHash || !amount || !status) {
+        return res.status(400).send('All fields are required');
+    }
+
+    try {
+        await db.query('INSERT INTO tbl_transactions (user_id, transaction_hash, amount, status) VALUES (?, ?, ?, ?)', [userId, transactionHash, amount, status]);
+        res.send('Transaction recorded');
+    } catch (error) {
+        console.error('Transaction recording error:', error);
+        res.status(500).send('Server error');
+    }
+});
+
+
 module.exports = router;
