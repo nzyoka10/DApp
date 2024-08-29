@@ -19,17 +19,22 @@
 
 ## Project structure
 ```bash
-wallet-dapp-node/
-├── models/
-│   └── User.js
+my-wallet/
+│
+├── config/
+│   └── db.js
+│
 ├── routes/
 │   ├── auth.js
-│   └── wallet.js
-├── public/
-│   ├── index.html
-│   ├── script.js
-│   └── style.css
+│   └── dashboard.js
+│
+├── views/
+│   ├── login.ejs
+│   ├── register.ejs
+│   └── dashboard.ejs
+│
 ├── .env
 ├── app.js
 └── package.json
+
 ```
