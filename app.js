@@ -1,28 +1,64 @@
 // app.js
-
 const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const authRoutes = require('./routes/auth');
-const walletRoutes = require('./routes/wallet');
+const path = require('path');
+const session = require('express-session');
+const MySQLStore = require('express-mysql-session')(session);
+const morgan = require('morgan');
 require('dotenv').config();
 
+const db = require('./config/db'); // Ensure this file correctly exports your database connection configuration
+const authRoutes = require('./routes/auth'); // Ensure these route files exist and are correctly set up
+const dashboardRoutes = require('./routes/dashboard'); // Ensure these route files exist and are correctly set up
+
 const app = express();
+
+// Setup view engine
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
+// Middleware
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(cors());
 
-// Serve static files from the public folder
-app.use(express.static('public'));
+// Logging
+app.use(morgan('dev')); // Log requests in development mode
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-    .then(() => console.log('MongoDB connected'))
-    .catch(err => console.log(err));
+// Session configuration
+const sessionStore = new MySQLStore({
+    expiration: 24 * 60 * 60 * 1000, // 24 hours
+    createDatabaseTable: true,
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME
+});
 
-// Use routes
-app.use('/api/auth', authRoutes);
-app.use('/api/wallet', walletRoutes);
+app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    store: sessionStore,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production', // Use HTTPS in production
+        httpOnly: true, // Prevent client-side JavaScript from accessing cookies
+        maxAge: 24 * 60 * 60 * 1000 // Cookie expiration
+    }
+}));
 
-// Start the server
+// Routes
+app.use('/auth', authRoutes);
+app.use('/dashboard', dashboardRoutes);
+
+// Home route
+app.get('/', (req, res) => {
+    res.redirect('/auth/login');
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send('Something broke!');
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

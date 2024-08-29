@@ -1,38 +1,71 @@
-// routes/auth.js
 const express = require('express');
-const router = express.Router();
-const User = require('../models/User');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { JWT_SECRET } = process.env;
+const router = express.Router();
+const db = require('../config/db');
 
-// Register a new user
+// Register route
+router.get('/register', (req, res) => {
+    res.render('register');
+});
+
 router.post('/register', async (req, res) => {
-    const { username, email, password } = req.body;
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+        return res.status(400).send('Username and password are required');
+    }
 
     try {
-        const user = new User({ username, email, password });
-        await user.save();
-        res.status(201).json({ message: 'User registered successfully' });
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await db.query('INSERT INTO tbl_users (username, password) VALUES (?, ?)', [username, hashedPassword]);
+        res.redirect('/auth/login');
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        console.error('Registration error:', error); 
+        res.status(500).send('Server error');
     }
 });
 
-// Login user
+// Login route
+router.get('/login', (req, res) => {
+    res.render('login');
+});
+
 router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+        return res.status(400).send('Username and password are required');
+    }
 
     try {
-        const user = await User.findOne({ email });
-        if (!user || !(await user.comparePassword(password))) {
-            return res.status(400).json({ error: 'Invalid credentials' });
+        const [rows] = await db.query('SELECT * FROM tbl_users WHERE username = ?', [username]);
+        if (rows.length === 0) {
+            return res.status(400).send('Invalid credentials');
         }
-
-        const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '1h' });
-        res.json({ token });
+        const user = rows[0];
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(400).send('Invalid credentials');
+        }
+        const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        req.session.token = token;
+        res.redirect('/dashboard');
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        console.error('Login error:', error); // Log the error for debugging
+        res.status(500).send('Server error');
     }
+});
+
+// Logout route
+router.get('/logout', (req, res) => {
+    req.session.destroy(err => {
+        if (err) {
+            console.error('Logout error:', err);
+            return res.status(500).send('Server error');
+        }
+        res.redirect('/auth/login');
+    });
 });
 
 module.exports = router;
