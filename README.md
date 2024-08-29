@@ -16,3 +16,20 @@
 - **Frontend**: HTML, CSS, JavaScript
 - **Libraries**: Bootstrap 5, SweetAlert2, ethers.js
 - **Wallet Integration**: MetaMask API
+
+## Project structure
+```bash
+wallet-dapp-node/
+├── models/
+│   └── User.js
+├── routes/
+│   ├── auth.js
+│   └── wallet.js
+├── public/
+│   ├── index.html
+│   ├── script.js
+│   └── style.css
+├── .env
+├── app.js
+└── package.json
+```
